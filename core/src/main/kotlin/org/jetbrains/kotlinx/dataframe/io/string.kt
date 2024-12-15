@@ -1,5 +1,6 @@
 package org.jetbrains.kotlinx.dataframe.io
 
+import org.jetbrains.kotlinx.dataframe.AnyCol
 import org.jetbrains.kotlinx.dataframe.AnyFrame
 import org.jetbrains.kotlinx.dataframe.AnyRow
 import org.jetbrains.kotlinx.dataframe.api.asNumbers
@@ -7,6 +8,8 @@ import org.jetbrains.kotlinx.dataframe.api.columnsCount
 import org.jetbrains.kotlinx.dataframe.api.isNumber
 import org.jetbrains.kotlinx.dataframe.api.take
 import org.jetbrains.kotlinx.dataframe.api.toColumn
+import org.jetbrains.kotlinx.dataframe.columns.ColumnGroup
+import org.jetbrains.kotlinx.dataframe.columns.ColumnKind
 import org.jetbrains.kotlinx.dataframe.impl.asArrayAsListOrNull
 import org.jetbrains.kotlinx.dataframe.impl.owner
 import org.jetbrains.kotlinx.dataframe.impl.renderType
@@ -39,48 +42,89 @@ internal fun AnyFrame.renderToString(
     // data
     val rowsCount = rowsLimit.coerceAtMost(nrow)
     val cols = if (rowIndex) listOf((0 until rowsCount).toColumn()) + columns() else columns()
-    val header = cols.mapIndexed { colIndex, col ->
-        if (columnTypes && (!rowIndex || colIndex > 0)) {
-            "${col.name()}:${renderType(col)}"
-        } else {
-            col.name()
+
+    // flattened columns
+    val flatCols = flattenColumns(cols)
+    val maxPath = flatCols.maxOfOrNull { it.first.size } ?: 0
+
+    // Check if the flattened columns are not empty
+    if (flatCols.isEmpty()) {
+        sb.appendLine("Empty DataFrame")
+        return sb.toString()
+    }
+
+    val headerRows = (0 until maxPath).map { depth ->
+        flatCols.map { (path, col) ->
+            var name = if (depth < path.size) path[depth] else ""
+            if (columnTypes && depth == path.size - 1) {
+                name += ":${renderType(col)}"
+            }
+            name
         }
     }
-    val values = cols.map {
-        val top = it.take(rowsLimit)
+
+    // Adjusted to flatCols
+    val values = flatCols.map { (_, col) ->
+        val top = col.take(rowsLimit)
         val precision = if (top.isNumber()) top.asNumbers().scale() else 0
         val decimalFormat =
             if (precision >= 0) RendererDecimalFormat.fromPrecision(precision) else RendererDecimalFormat.of("%e")
-        top.values().map {
-            renderValueForStdout(it, valueLimit, decimalFormat = decimalFormat).truncatedContent
+        top.values().map { value ->
+            renderValueForStdout(value, valueLimit, decimalFormat = decimalFormat).truncatedContent
         }
     }
-    val columnLengths = values.mapIndexed { col, vals -> (vals + header[col]).map { it.length }.maxOrNull()!! + 1 }
+
+    // Adjusted to hierarchical columns
+    val columnWidths = flatCols.indices.map { i ->
+        val maxHeader = headerRows.maxOf { it[i].length }
+        val maxValue = values[i].maxOfOrNull { it.length } ?: 0
+        kotlin.math.max(maxHeader, maxValue) + 1
+    }
+
+    // Remove duplicates from headers
+    val mutableHeaderRows = headerRows.map { it.toMutableList() }
+    for (row in mutableHeaderRows) {
+        var last = ""
+        for (i in row.indices) {
+            if (row[i] == last) {
+                row[i] = ""
+            } else {
+                last = row[i]
+            }
+        }
+    }
 
     // top border
     if (borders) {
         sb.append("\u230C")
-        for (i in 1 until columnLengths.sum() + columnLengths.size) sb.append('-')
-        sb.append("\u230D")
+        for (i in columnWidths.indices) {
+            val line = "-".repeat(columnWidths[i])
+            sb.append(line)
+            if (i == columnWidths.lastIndex) {
+                sb.append("\u230D")
+            } else {
+                sb.append("+")
+            }
+        }
         sb.appendLine()
-        sb.append("|")
     }
 
     // header
-    for (col in header.indices) {
-        val len = columnLengths[col]
-        val str = header[col]
-        val padded = if (alignLeft) str.padEnd(len) else str.padStart(len)
-        sb.append(padded)
-        if (borders) sb.append("|")
+    for (row in mutableHeaderRows) {
+        for ((i, str) in row.withIndex()) {
+            val width = columnWidths[i]
+            val padded = if (alignLeft) str.padEnd(width) else str.padStart(width)
+            sb.append(padded)
+            if (borders && i == row.lastIndex) sb.append("|")
+        }
+        sb.appendLine()
     }
-    sb.appendLine()
 
     // header splitter
     if (borders) {
         sb.append("|")
-        for (colLength in columnLengths) {
-            for (i in 1..colLength) sb.append('-')
+        for (width in columnWidths) {
+            sb.append("-".repeat(width))
             sb.append("|")
         }
         sb.appendLine()
@@ -88,13 +132,12 @@ internal fun AnyFrame.renderToString(
 
     // data
     for (row in 0 until rowsCount) {
-        if (borders) sb.append("|")
-        for (col in values.indices) {
-            val len = columnLengths[col]
-            val str = values[col][row]
-            val padded = if (alignLeft) str.padEnd(len) else str.padStart(len)
+        for ((i, value) in values.withIndex()) {
+            val width = columnWidths[i]
+            val str = value[row]
+            val padded = if (alignLeft) str.padEnd(width) else str.padStart(width)
             sb.append(padded)
-            if (borders) sb.append("|")
+            if (borders && i == columnWidths.lastIndex) sb.append("|")
         }
         sb.appendLine()
     }
@@ -104,12 +147,34 @@ internal fun AnyFrame.renderToString(
         sb.appendLine("...")
     } else if (borders) {
         sb.append("\u230E")
-        for (i in 1 until columnLengths.sum() + columnLengths.size) sb.append('-')
-        sb.append("\u230F")
+        for (i in columnWidths.indices) {
+            val line = "-".repeat(columnWidths[i])
+            sb.append(line)
+            if (i == columnWidths.lastIndex) {
+                sb.append("⌏")
+            } else {
+                sb.append("+")
+            }
+        }
         sb.appendLine()
     }
     return sb.toString()
 }
+
+// define a function that flattens columns. It accepts columns and produces a liat of pairs containing
+// path to a column and the column itself. We will use it to create a hierarchical header
+private fun flattenColumns(cols: List<AnyCol>, path: List<String> = emptyList()): List<Pair<List<String>, AnyCol>> =
+    cols.flatMap { col ->
+        val newPath = path + col.name()
+        when {
+            col.kind() == ColumnKind.Group -> {
+                val group = col as ColumnGroup<*>
+                flattenColumns(group.columns(), newPath)
+            }
+
+            else -> listOf(newPath to col)
+        }
+    }
 
 internal val valueToStringLimitDefault = 1000
 internal val valueToStringLimitForRowAsTable = 50

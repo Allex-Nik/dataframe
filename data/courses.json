@@ -1,0 +1,45 @@
+{
+  "university": "Example University",
+  "faculties": [
+    {
+      "name": "Computer Science",
+      "courses": [
+        {
+          "course_name": "Algorithms",
+          "students": [
+            {"name": "Alice", "grade": "A"},
+            {"name": "Bob", "grade": "B"},
+            {"name": "Charlie", "grade": "A-"}
+          ]
+        },
+        {
+          "course_name": "Data Structures",
+          "students": [
+            {"name": "David", "grade": "B+"},
+            {"name": "Eve", "grade": "A"},
+            {"name": "Frank", "grade": "C"}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Mathematics",
+      "courses": [
+        {
+          "course_name": "Linear Algebra",
+          "students": [
+            {"name": "Grace", "grade": "A"},
+            {"name": "Heidi", "grade": "B-"}
+          ]
+        },
+        {
+          "course_name": "Calculus",
+          "students": [
+            {"name": "Ivan", "grade": "C+"},
+            {"name": "Judy", "grade": "B"}
+          ]
+        }
+      ]
+    }
+  ]
+}

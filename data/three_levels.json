@@ -1,0 +1,25 @@
+{
+  "university": {
+    "name": "Example University",
+    "location": {
+      "city": "Boston",
+      "state": "MA"
+    },
+    "departments": [
+      {
+        "name": "Computer Science",
+        "courses": [
+          {"name": "Algorithms", "credits": 3},
+          {"name": "Data Structures", "credits": 4}
+        ]
+      },
+      {
+        "name": "Mathematics",
+        "courses": [
+          {"name": "Calculus", "credits": 4},
+          {"name": "Linear Algebra", "credits": 3}
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "region": "North America",
+  "countries": {
+    "USA": {
+      "states": {
+        "California": {"population": 39538223, "capital": "Sacramento"},
+        "Texas": {"population": 29145505, "capital": "Austin"}
+      }
+    },
+    "Canada": {
+      "provinces": {
+        "Ontario": {"population": 14734014, "capital": "Toronto"},
+        "Quebec": {"population": 8574571, "capital": "Quebec City"}
+      }
+    }
+  }
+}

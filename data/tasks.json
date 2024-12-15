@@ -1,0 +1,44 @@
+{
+  "organization": "InnovativeTech",
+  "projects": [
+    {
+      "project_name": "AI Development",
+      "tasks": [
+        {
+          "task_name": "Train Model",
+          "subtasks": [
+            {"subtask": "Prepare Dataset", "time_spent_hours": 10},
+            {"subtask": "Choose Architecture", "time_spent_hours": 5},
+            {"subtask": "Train and Evaluate", "time_spent_hours": 20}
+          ]
+        },
+        {
+          "task_name": "Deploy Model",
+          "subtasks": [
+            {"subtask": "Optimize Model", "time_spent_hours": 8},
+            {"subtask": "Set Up Cloud Infrastructure", "time_spent_hours": 15}
+          ]
+        }
+      ]
+    },
+    {
+      "project_name": "Web Development",
+      "tasks": [
+        {
+          "task_name": "Frontend",
+          "subtasks": [
+            {"subtask": "Design UI", "time_spent_hours": 12},
+            {"subtask": "Implement Components", "time_spent_hours": 25}
+          ]
+        },
+        {
+          "task_name": "Backend",
+          "subtasks": [
+            {"subtask": "Set Up Database", "time_spent_hours": 10},
+            {"subtask": "Create API Endpoints", "time_spent_hours": 18}
+          ]
+        }
+      ]
+    }
+  ]
+}
