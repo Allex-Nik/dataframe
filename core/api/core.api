@@ -454,6 +454,11 @@ public final class org/jetbrains/kotlinx/dataframe/DataRow$DefaultImpls {
 	public static fun times (Lorg/jetbrains/kotlinx/dataframe/DataRow;Lorg/jetbrains/kotlinx/dataframe/columns/ColumnReference;J)J
 }
 
+public final class org/jetbrains/kotlinx/dataframe/ToStringWithParamsKt {
+	public static final fun toStringWithParams (Lorg/jetbrains/kotlinx/dataframe/DataFrame;IIZZZZZ)Ljava/lang/String;
+	public static synthetic fun toStringWithParams$default (Lorg/jetbrains/kotlinx/dataframe/DataFrame;IIZZZZZILjava/lang/Object;)Ljava/lang/String;
+}
+
 public abstract interface class org/jetbrains/kotlinx/dataframe/aggregation/Aggregatable {
 }
 
