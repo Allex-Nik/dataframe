@@ -111,11 +111,12 @@ internal fun AnyFrame.renderToString(
 
     // header
     for (row in mutableHeaderRows) {
+        if (borders) sb.append("|")
         for ((i, str) in row.withIndex()) {
             val width = columnWidths[i]
             val padded = if (alignLeft) str.padEnd(width) else str.padStart(width)
             sb.append(padded)
-            if (borders && i == row.lastIndex) sb.append("|")
+            if (borders) sb.append("|") // if (borders && i == row.lastIndex)
         }
         sb.appendLine()
     }
@@ -132,12 +133,13 @@ internal fun AnyFrame.renderToString(
 
     // data
     for (row in 0 until rowsCount) {
+        if (borders) sb.append("|")
         for ((i, value) in values.withIndex()) {
             val width = columnWidths[i]
             val str = value[row]
             val padded = if (alignLeft) str.padEnd(width) else str.padStart(width)
             sb.append(padded)
-            if (borders && i == columnWidths.lastIndex) sb.append("|")
+            if (borders) sb.append("|")
         }
         sb.appendLine()
     }
@@ -151,7 +153,7 @@ internal fun AnyFrame.renderToString(
             val line = "-".repeat(columnWidths[i])
             sb.append(line)
             if (i == columnWidths.lastIndex) {
-                sb.append("⌏")
+                sb.append("\u230F")
             } else {
                 sb.append("+")
             }
