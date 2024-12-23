@@ -1,6 +1,5 @@
 package org.jetbrains.kotlinx.dataframe.io
 
-import org.jetbrains.kotlinx.dataframe.AnyCol
 import org.jetbrains.kotlinx.dataframe.AnyFrame
 import org.jetbrains.kotlinx.dataframe.AnyRow
 import org.jetbrains.kotlinx.dataframe.api.asNumbers
@@ -10,7 +9,10 @@ import org.jetbrains.kotlinx.dataframe.api.take
 import org.jetbrains.kotlinx.dataframe.api.toColumn
 import org.jetbrains.kotlinx.dataframe.columns.ColumnGroup
 import org.jetbrains.kotlinx.dataframe.columns.ColumnKind
+import org.jetbrains.kotlinx.dataframe.columns.ColumnWithPath
 import org.jetbrains.kotlinx.dataframe.impl.asArrayAsListOrNull
+import org.jetbrains.kotlinx.dataframe.impl.columns.addPath
+import org.jetbrains.kotlinx.dataframe.impl.emptyPath
 import org.jetbrains.kotlinx.dataframe.impl.owner
 import org.jetbrains.kotlinx.dataframe.impl.renderType
 import org.jetbrains.kotlinx.dataframe.impl.scale
@@ -42,10 +44,11 @@ internal fun AnyFrame.renderToString(
     // data
     val rowsCount = rowsLimit.coerceAtMost(nrow)
     val cols = if (rowIndex) listOf((0 until rowsCount).toColumn()) + columns() else columns()
+    val colsWithPaths: List<ColumnWithPath<*>> = cols.map { it.addPath(emptyPath()) }
 
     // flattened columns
-    val flatCols = flattenColumns(cols)
-    val maxPath = flatCols.maxOfOrNull { it.first.size } ?: 0
+    val flatCols = flattenColumns(colsWithPaths)
+    val maxPath = flatCols.maxOfOrNull { it.path.size } ?: 0
 
     // Check if the flattened columns are not empty
     if (flatCols.isEmpty()) {
@@ -54,9 +57,9 @@ internal fun AnyFrame.renderToString(
     }
 
     val headerRows = (0 until maxPath).map { depth ->
-        flatCols.map { (path, col) ->
-            var name = if (depth < path.size) path[depth] else ""
-            if (columnTypes && depth == path.size - 1) {
+        flatCols.map { col ->
+            var name = if (depth < col.path.size) col.path[depth] else ""
+            if (columnTypes && depth == col.path.size - 1) {
                 name += ":${renderType(col)}"
             }
             name
@@ -64,7 +67,7 @@ internal fun AnyFrame.renderToString(
     }
 
     // Adjusted to flatCols
-    val values = flatCols.map { (_, col) ->
+    val values = flatCols.map { col ->
         val top = col.take(rowsLimit)
         val precision = if (top.isNumber()) top.asNumbers().scale() else 0
         val decimalFormat =
@@ -163,18 +166,21 @@ internal fun AnyFrame.renderToString(
     return sb.toString()
 }
 
-// define a function that flattens columns. It accepts columns and produces a liat of pairs containing
+// define a function that flattens columns. It accepts columns and produces a list of pairs containing
 // path to a column and the column itself. We will use it to create a hierarchical header
-private fun flattenColumns(cols: List<AnyCol>, path: List<String> = emptyList()): List<Pair<List<String>, AnyCol>> =
+private fun flattenColumns(cols: List<ColumnWithPath<*>>): List<ColumnWithPath<*>> =
     cols.flatMap { col ->
-        val newPath = path + col.name()
+        val newPath = col.path.plus(col.name())
         when {
-            col.kind() == ColumnKind.Group -> {
-                val group = col as ColumnGroup<*>
-                flattenColumns(group.columns(), newPath)
+            col.data.kind() == ColumnKind.Group -> {
+                val group = col.data as ColumnGroup<*>
+                flattenColumns(group.columns().map { it.addPath(newPath) })
             }
 
-            else -> listOf(newPath to col)
+            else -> {
+                val colWithNewPath = col.data.addPath(newPath)
+                listOf(colWithNewPath)
+            }
         }
     }
 
